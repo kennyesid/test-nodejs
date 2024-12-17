@@ -1,39 +1,88 @@
-const Ajv = require("ajv");
-const addFormats = require("ajv-formats");
-const jwt = require("jsonwebtoken");
+const faker = require('faker');
 
-const ajv = new Ajv();
-addFormats(ajv);
-
-const userSchema = {
-  type: "object",
-  properties: {
-    name: { type: "string" },
-    email: { type: "string", format: "email" },
-    type: { type: "string" },
-    password: { type: "string", minLength: 4 },
-  },
-  required: ["name", "email", "type", "password"],
-  additionalProperties: false,
-};
-
-const validateUser = (req, res, next) => {
-  const validate = ajv.compile(userSchema);
-  const valid = validate(req.body);
-
-  if (!valid) {
-    return res.status(400).json({
-      error: "Error de validación",
-      details: validate.errors,
-    });
+class UserService {
+  constructor() {
+    this.users = [];
+    this.buildUser();
   }
 
-  next();
-};
+  buildUser() {
+    this.users.push({
+      id: faker.datatype.uuid(),
+      name: 'yesid alejandro',
+      email: 'kennyesid@gmail.com',
+      type: 'admin',
+      password: '123456'
+    })
+  }
 
-const generateToken = (user) => {
-  const payload = { id: user._id, type: user.type };
-  return jwt.sign(payload, "secret_key", { expiresIn: "1h" });
-};
+  find() {
+    return new Promise((resolve) => {
+      resolve(this.users);
+    })
+  }
 
-module.exports = { validateUser, generateToken };
+  async create(data) {
+
+    const user = this.users.find(item => item.email === data.email);
+
+    if (user) {
+      return -1
+    }
+
+    const newUser = {
+      id: faker.datatype.uuid(),
+      ...data
+    }
+    this.users.push(newUser);
+    return newUser;
+  }
+
+  async findOne(email) {
+    const user = this.users.find(item => item.email === email);
+    if (!user) {
+      throw boom.notFound('usuario no encontrado');
+    }
+    if (user.isBlock) {
+      throw boom.conflict('usuario bloqueado');
+    }
+    return user;
+  }
+
+  async findOneById(id) {
+    const user = this.users.find(item => item.id === id);
+    if (!user) {
+      throw boom.notFound('usuario no encontrado');
+    }
+    if (user.isBlock) {
+      throw boom.conflict('usuario bloqueado');
+    }
+    return user;
+  }
+
+  async update(id, name, email, type, password) {
+    const user = this.users.find(item => item.id === id);
+    if (user === -1) {
+      throw boom.notFound('usuario no encontrado');
+    }
+
+    user.name = name;
+    user.email = email;
+    user.type = type;
+    user.password = password;
+
+    return user;
+  }
+
+  async delete(id) {
+    const index = this.users.findIndex(item => item.id === id);
+    if (index === -1) {
+      throw boom.notFound('product not found');
+    }
+    this.users.splice(index, 1);
+    return { id };
+  }
+
+}
+
+module.exports = UserService;
