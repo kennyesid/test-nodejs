@@ -1,22 +1,13 @@
 const { Router } = require("express");
 const User = require("../models/user.model");
-const { validateUser, generateToken } = require("../services/userService");
+const { validateUser, generateToken } = require("../models/user.schema");
+const UserService = require("../services/userService")
 const verifyToken = require("../middleware/authMiddleware");
 const routes = Router();
 
-/**
- * @swagger
- * /api:
- *   get:
- *     summary: Obtiene un saludo
- *     responses:
- *       200:
- *         description: Saludo exitoso
- *         content:
- *           application/json:
- *             example:
- *               message: '¡Hola, mundo!'
- */
+
+const service = new UserService();
+
 routes.get("/", (req, res) => {
   res.send({ message: "¡Hola, Test!" });
 });
@@ -26,9 +17,15 @@ routes.post("/register", validateUser, async (req, res) => {
   response.state = true;
   response.message = "Usuario registrado";
   try {
-    const user = new User(req.body);
-    await user.save();
-    res.status(201).json(response);
+    const respCreate = await service.create(req.body);
+
+    if (respCreate == -1) {
+      response.state = false;
+      response.message = "Correo registrado anteriormente";
+      return res.status(200).json(response);
+    } else {
+      return res.status(201).json(respCreate);
+    }
   } catch (err) {
     response.state = false;
     response.message = "Error al registrar usuario";
@@ -45,7 +42,7 @@ routes.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await service.findOne(email);
     if (!user) {
       response.state = false;
       response.message = "Usuario no encontrado";
@@ -73,7 +70,7 @@ routes.post("/login", async (req, res) => {
 
 routes.get("/all", verifyToken, async (req, res) => {
   try {
-    const users = await User.find();
+    const users = await service.find();
     res.json(users);
   } catch (err) {
     res
@@ -87,20 +84,15 @@ routes.put("/:id", validateUser, async (req, res) => {
   const { name, email, type, password } = req.body;
 
   try {
-    const user = await User.findById(id);
+    const user = await service.findOneById(id);
 
     if (!user) {
       return res.status(404).json({ error: "no existe el usuario" });
     }
 
-    user.name = name;
-    user.email = email;
-    user.type = type;
-    user.password = password;
+    const userUpdate = await service.update(id, name, email, type, password);
 
-    await user.save();
-
-    res.json({ message: "Usuario actualizado", user });
+    res.json({ message: "Usuario actualizado", userUpdate });
   } catch (err) {
     res
       .status(500)
@@ -112,9 +104,10 @@ routes.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const user = await User.findByIdAndDelete(id);
 
-    if (!user) {
+    const userDelete = await service.delete(id);
+
+    if (!userDelete) {
       return res.status(404).json({ error: "no existe el usuario" });
     }
 
