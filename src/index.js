@@ -1,15 +1,15 @@
 require("dotenv").config();
 
 const express = require("express");
-const mongoose = require("mongoose");
+// const mongoose = require("mongoose");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJSDoc = require("swagger-jsdoc");
 const routes = require("./routes");
 const cors = require("cors");
 
-mongoose.connect(
-  "mongodb+srv://kennyesidplatzi:v0ch22bKCkJbjwTg@cluster0.qfd1f.mongodb.net/usersdb"
-);
+// mongoose.connect(
+//   "mongodb+srv://kennyesidplatzi:v0ch22bKCkJbjwTg@cluster0.qfd1f.mongodb.net/usersdb"
+// );
 
 const app = express();
 
